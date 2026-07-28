@@ -148,7 +148,14 @@ if ($PSCmdlet.ShouldProcess($resolvedInstallRoot, 'Install per-user native host 
   Set-Content -LiteralPath (Join-Path $stageRoot 'librewolf-agent-native-host.cmd') -Value $launcher -Encoding ascii
   $escapedLauncher = $launcherPath.Replace('\', '\\')
   $manifest = (Get-Content -LiteralPath $templatePath -Raw).Replace('__HOST_PATH__', $escapedLauncher)
-  Set-Content -LiteralPath (Join-Path $stageRoot "$hostName.json") -Value $manifest -Encoding utf8NoBOM
+  # Firefox rejects a native-messaging manifest that carries a UTF-8 BOM, and Windows
+  # PowerShell 5.1 — the default shell on Windows — has no "utf8NoBOM" encoding. Write the
+  # bytes directly so this works on both 5.1 and PowerShell 7+.
+  [System.IO.File]::WriteAllText(
+    (Join-Path $stageRoot "$hostName.json"),
+    $manifest,
+    (New-Object System.Text.UTF8Encoding $false)
+  )
 
   if (Test-Path -LiteralPath $resolvedInstallRoot) {
     Assert-ContainedPath $resolvedInstallRoot $allowedInstallRoot 'Existing install root'

@@ -338,7 +338,14 @@ export async function createSecureWindowsPipeServer(
         120_000,
         'Discovery TTL',
       );
-      const rootDirectory = publicationOptions.rootDirectory ?? dirname(dirname(resolve(path)));
+      // The private root is the discovery file's own directory, not its grandparent. The
+      // grandparent is the shared application directory that the native-host installer also
+      // creates, so it carries inherited ACLs; requiring it to be inheritance-protected made
+      // the helper reject every real installation with
+      // DISCOVERY_DIRECTORY_SECURITY_FAILED. Hardening the runtime directory itself keeps the
+      // same guarantee — the discovery record still lives behind a current-user-only,
+      // inheritance-protected DACL that the helper re-verifies on every connection.
+      const rootDirectory = publicationOptions.rootDirectory ?? dirname(resolve(path));
       const state = {
         path: resolve(path),
         rootDirectory: resolve(rootDirectory),
