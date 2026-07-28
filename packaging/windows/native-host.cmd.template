@@ -1,4 +1,7 @@
 @echo off
-setlocal
-"__NODE_PATH__" "__HOST_CLI_PATH__" --extension-id "librewolf-agent-bridge@librewolf-agent-bridge.org"
+setlocal DisableDelayedExpansion
+rem Firefox launches a native messaging host as: <host> <manifest-path> <extension-id>
+rem Both arguments must reach the host: it verifies the calling extension ID and refuses to
+rem start without the manifest path. Forward %* verbatim rather than synthesising arguments.
+"__NODE_PATH__" "__HOST_CLI_PATH__" %*
 exit /b %ERRORLEVEL%

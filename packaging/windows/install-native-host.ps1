@@ -144,7 +144,11 @@ if ($PSCmdlet.ShouldProcess($resolvedInstallRoot, 'Install per-user native host 
   New-Item -ItemType Directory -Path $stageRoot -Force | Out-Null
   Copy-Item -LiteralPath $resolvedPayloadRoot -Destination (Join-Path $stageRoot 'payload') -Recurse -Force
 
-  $launcher = "@echo off`r`nsetlocal DisableDelayedExpansion`r`n`"$resolvedNode`" `"%~dp0payload\dist\cli.js`" --extension-id `"$extensionId`"`r`nexit /b %ERRORLEVEL%`r`n"
+  # Firefox launches a native messaging host as: <host> <manifest-path> <extension-id>. The host
+  # verifies the calling extension ID and refuses to start without the manifest path, so both
+  # must be forwarded verbatim. Synthesising --extension-id here dropped the manifest path and
+  # made every launch fail with "Native host manifest path is missing or invalid."
+  $launcher = "@echo off`r`nsetlocal DisableDelayedExpansion`r`n`"$resolvedNode`" `"%~dp0payload\dist\cli.js`" %*`r`nexit /b %ERRORLEVEL%`r`n"
   Set-Content -LiteralPath (Join-Path $stageRoot 'librewolf-agent-native-host.cmd') -Value $launcher -Encoding ascii
   $escapedLauncher = $launcherPath.Replace('\', '\\')
   $manifest = (Get-Content -LiteralPath $templatePath -Raw).Replace('__HOST_PATH__', $escapedLauncher)

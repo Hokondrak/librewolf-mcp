@@ -1,7 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { dirname, isAbsolute, resolve } from 'node:path';
+import { mkdir, realpath } from 'node:fs/promises';
+import { dirname, isAbsolute, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BASE_HOST_CAPABILITIES } from './capabilities.js';
@@ -68,6 +69,46 @@ export interface SecureWindowsPipeServer {
   heartbeat(): Promise<void>;
   unpublishDiscovery(): Promise<void>;
   close(): Promise<void>;
+}
+
+/**
+ * Refuses to publish a discovery record into a redirected directory.
+ *
+ * An MSIX-packaged MCP client (Claude Desktop) has its `%LOCALAPPDATA%` and `%APPDATA%` writes
+ * redirected into its package container. The native host is started by LibreWolf, outside that
+ * container, so it would read a different directory of the same name and find nothing. The
+ * redirection is silent — the directory is not a reparse point — so without this check the
+ * server publishes successfully, the host reports "no discovery record", and neither names the
+ * real cause.
+ */
+async function assertNotRedirected(rootDirectory: string): Promise<void> {
+  const directory = resolve(rootDirectory);
+  // The helper creates the private root itself and requires an inheritance-protected DACL on it,
+  // so only its parent may be created here — an ordinary container, not the security boundary.
+  // Creating the root would hand the helper a directory with inherited ACLs, which it rejects.
+  const parent = dirname(directory);
+  if (parent !== directory) {
+    await mkdir(parent, { recursive: true });
+  }
+  let existing = directory;
+  while (!existsSync(existing)) {
+    const next = dirname(existing);
+    if (next === existing) {
+      return;
+    }
+    existing = next;
+  }
+  const canonical = await realpath(existing);
+  if (normalize(canonical).toLowerCase() === normalize(existing).toLowerCase()) {
+    return;
+  }
+  throw new SecureWindowsPipeError(
+    'NATIVE_HELPER_REJECTED_ENDPOINT',
+    `The runtime directory is redirected by the operating system and the browser could not read ` +
+      `it. Declared "${existing}" but it resolves to "${canonical}". This happens when the MCP ` +
+      `client is a packaged (MSIX) application; choose a runtime directory outside %LOCALAPPDATA% ` +
+      `and %APPDATA%.`,
+  );
 }
 
 interface HelperControl {
@@ -346,6 +387,7 @@ export async function createSecureWindowsPipeServer(
       // same guarantee — the discovery record still lives behind a current-user-only,
       // inheritance-protected DACL that the helper re-verifies on every connection.
       const rootDirectory = publicationOptions.rootDirectory ?? dirname(resolve(path));
+      await assertNotRedirected(rootDirectory);
       const state = {
         path: resolve(path),
         rootDirectory: resolve(rootDirectory),

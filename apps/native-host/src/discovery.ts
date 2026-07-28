@@ -1,4 +1,5 @@
 import { lstat, readFile, realpath } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { isAbsolute, join, normalize, resolve } from 'node:path';
 
 import type { DiscoveryRecord } from './types.js';
@@ -24,15 +25,29 @@ export class DiscoveryError extends Error {
   }
 }
 
+/**
+ * Rendezvous location for the discovery record, deliberately outside `%LOCALAPPDATA%`.
+ *
+ * The MCP server and the native host are started by different parents: the server by the MCP
+ * client, the host by LibreWolf. When that client is an MSIX-packaged application — Claude
+ * Desktop is — Windows redirects its `%LOCALAPPDATA%` writes into
+ * `...\Packages\<package>\LocalCache\Local\...`. The server then publishes inside its package
+ * container while the host, running outside it, reads the real `%LOCALAPPDATA%` and finds
+ * nothing. The redirection is silent and is not a reparse point, so neither side can detect it
+ * by inspecting the directory.
+ *
+ * MSIX redirects the AppData and ProgramData subtrees only, so a directory directly under the
+ * user's home resolves to the same file for packaged and unpackaged processes alike.
+ */
 export function defaultDiscoveryPath(environment: NodeJS.ProcessEnv = process.env): string {
-  const localAppData = environment['LOCALAPPDATA'];
-  if (!localAppData || !isAbsolute(localAppData)) {
+  const home = environment['USERPROFILE'] ?? homedir();
+  if (!home || !isAbsolute(home)) {
     throw new DiscoveryError(
       'RUNTIME_DIRECTORY_UNAVAILABLE',
-      'LOCALAPPDATA is unavailable or is not an absolute path.',
+      'USERPROFILE is unavailable or is not an absolute path.',
     );
   }
-  return join(localAppData, 'LibreWolfAgentBridge', 'runtime', 'discovery-v1.json');
+  return join(home, '.librewolf-agent-bridge', 'runtime', 'discovery-v1.json');
 }
 
 export async function loadDiscoveryRecord(

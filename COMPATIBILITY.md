@@ -136,6 +136,37 @@ browsingContext.navigate`. Navigation to a distinct URL passed. The bridge
     its pinned npm geckodriver package when no driver is cached. Packaging and
     troubleshooting must distinguish this from a network download failure.
 
+## Companion mode on Windows
+
+Verified against a real installation on 2026-07-28. Four defects were found and fixed; the flow
+is not yet complete.
+
+**Extension signing is not a blocker.** LibreWolf loads the unsigned build permanently once
+`xpinstall.signatures.required` is `false` in `about:config`. A scratch profile with the XPI
+sideloaded reported `active: True`, `appDisabled: False`, `signedState: 0` and kept it across
+restarts. No AMO signing and no `about:debugging` temporary-only workaround is required.
+
+**The MCP client's package container is the hard constraint.** The MCP server and the native
+host are started by different parents — the server by the MCP client, the host by LibreWolf.
+When the client is an MSIX-packaged application, which Claude Desktop is, Windows silently
+redirects its `%LOCALAPPDATA%` and `%APPDATA%` writes into
+`...\Packages\<package>\LocalCache\Local\...`. The server published the rendezvous record inside
+its container while the host read the real `%LOCALAPPDATA%` and found nothing. The redirected
+directory is not a reparse point, so neither side could detect it by inspection. The runtime
+directory is therefore `%USERPROFILE%\.librewolf-agent-bridge\runtime`, outside the redirected
+subtrees, and publication now refuses to proceed into a redirected directory instead of
+succeeding invisibly.
+
+Also fixed: the Windows installer used `-Encoding utf8NoBOM`, which is PowerShell 7+ only and
+failed outright on Windows PowerShell 5.1; and the generated launcher synthesised
+`--extension-id` instead of forwarding `%*`, so Firefox's `<manifest-path> <extension-id>`
+arguments never reached the host, which refused to start.
+
+**Current state:** the host installs and registers, the hardened runtime directory is created,
+and the record publishes. The server then waits for an authenticated companion that does not
+arrive. The remaining work is the host-to-server handshake over the named pipe. Controlled mode
+is unaffected by any of this.
+
 ## Upstream tool selection
 
 Production controlled mode starts Mozilla with exactly:
