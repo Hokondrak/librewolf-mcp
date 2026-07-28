@@ -168,6 +168,29 @@ const readRuntimeVersion = async (runtimePath: string): Promise<string> => {
   }
 };
 
+/**
+ * True when the companion native messaging host has been installed for this user.
+ *
+ * Installing it is a deliberate act, so its presence is a reliable signal that the user wants
+ * the extension path rather than a dedicated profile.
+ */
+const companionHostInstalled = (
+  environment: Readonly<Record<string, string | undefined>>,
+): boolean => {
+  const localAppData = environment['LOCALAPPDATA'];
+  if (!localAppData || !isAbsolute(localAppData)) {
+    return false;
+  }
+  return existsSync(
+    join(
+      localAppData,
+      'LibreWolfAgentBridge',
+      'native-host',
+      'org.librewolf_agent_bridge.native.json',
+    ),
+  );
+};
+
 const resolveWindowsJobSupervisor = (): string | undefined => {
   if (process.platform !== 'win32') {
     return undefined;
@@ -328,22 +351,25 @@ export const createSessionForCli = async (
     throw new NodeEngineCompatibilityError(compatibility);
   }
 
+  const companionSession = (): BrowserSession =>
+    dependencies.companionSessionFactory?.({}) ??
+    new CompanionBrowserSession({ transport: new SecureCompanionTransport() });
+
   if (options.mode === 'companion') {
-    return (
-      dependencies.companionSessionFactory?.({}) ??
-      new CompanionBrowserSession({
-        transport: new SecureCompanionTransport(),
-      })
-    );
+    return companionSession();
   }
 
-  // In auto mode the browser itself decides: if an agent-ready LibreWolf is already listening,
-  // attach to it and keep the user's signed-in session; otherwise launch a dedicated profile so
-  // the tools still work. That makes the agent-ready shortcut the only switch a user needs.
+  // Auto mode picks the best way to reach a browser the user already has open, and only falls
+  // back to launching one. Attached first: it keeps their session and gives native input plus
+  // console and network. Then the companion extension, which also uses their session but is
+  // limited to synthetic input. A dedicated profile is the last resort.
   const marionettePort = options.marionettePort ?? 2828;
   let attach = options.mode === 'attached';
   if (options.mode === 'auto') {
     attach = (await probeMarionetteEndpoint(marionettePort)) === 'free';
+    if (!attach && companionHostInstalled(dependencies.env ?? process.env)) {
+      return companionSession();
+    }
   }
 
   const discovery = dependencies.discover

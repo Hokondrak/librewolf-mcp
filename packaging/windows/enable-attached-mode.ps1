@@ -29,7 +29,9 @@ param(
   [string]$LibreWolfPath = 'C:\Program Files\LibreWolf\librewolf.exe',
   [ValidateRange(1, 65535)][int]$MarionettePort = 2828,
   [ValidateRange(1, 65535)][int]$RemoteDebuggingPort = 9222,
-  [string]$ShortcutPath = (Join-Path ([Environment]::GetFolderPath('Desktop')) 'LibreWolf (agent ready).lnk')
+  # Start menu rather than the desktop: it stays out of the way but is reachable by typing
+  # "agent ready" into Start. Override with -ShortcutPath to put it anywhere.
+  [string]$ShortcutPath = (Join-Path ([Environment]::GetFolderPath('Programs')) 'LibreWolf (agent ready).lnk')
 )
 
 $ErrorActionPreference = 'Stop'
