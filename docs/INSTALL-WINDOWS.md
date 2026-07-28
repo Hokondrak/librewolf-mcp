@@ -120,9 +120,35 @@ npm run validate:plugin
 
 The template deliberately does not bundle Node or an unverified server build.
 
-## Claude MCPB template
+## Claude Desktop one-click install (recommended)
 
-`packaging/claude-mcpb/manifest.json` uses conservative manifest version `0.3`. Put a runnable, self-contained server payload at `server/cli.js` before creating/importing an `.mcpb`. The package script checks that entry point instead of creating a misleading archive.
+This is the shortest path and needs no config editing and no `npm install`.
+
+```powershell
+npm run package:all
+```
+
+That writes `artifacts/librewolf-agent-bridge-<version>.mcpb` (~47 MB). The
+bundle is self-contained: the built server, the pinned
+`@mozilla/firefox-devtools-mcp` with its full dependency tree, GeckoDriver, and
+the compiled Windows secure-pipe/Job Object helper. Install it by opening the
+`.mcpb` with Claude Desktop, then call `browser_status`.
+
+`packaging/claude-mcpb/manifest.json` declares manifest version `0.3`,
+`server.type` of `node`, and `compatibility.runtimes.node` of `>=20.19.0`. The
+host supplies the Node runtime for a `node`-type extension. If installation
+fails on the runtime constraint, install Node 20.19 or newer and retry; that is
+the same floor the manual configurations need.
+
+Verify a bundle before distributing it:
+
+```powershell
+node scripts/bundled-server-smoke.mjs <extracted>\server
+```
+
+The smoke checks the ESM boundary, a zero-exit CLI, stdout reserved for MCP
+frames, help routed to stderr, the packaged secure helper, and the pinned
+Mozilla version.
 
 ## Companion package (optional)
 

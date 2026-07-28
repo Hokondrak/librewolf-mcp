@@ -12,6 +12,19 @@ The optional companion package can connect an explicitly approved existing Libre
 
 No artifact is deployed by this project.
 
+## Fastest path: Claude Desktop one-click
+
+```powershell
+npm ci
+npm run package:all
+```
+
+Open the resulting `artifacts/librewolf-agent-bridge-<version>.mcpb` with Claude
+Desktop, then call `browser_status`. No config file to edit and no dependency
+install: the bundle carries the server, the pinned Mozilla upstream, GeckoDriver,
+and the Windows secure helper. Use the manual setup below for Codex, Claude Code,
+ChatGPT Desktop, or when you want the checkout itself to be the server.
+
 ## Five-minute controlled setup (Windows)
 
 1. Install LibreWolf and Node **20.19.0 or newer**. The compatibility check was run with LibreWolf `146.0-2`; Node `20.18.2` is known to be too old for the pinned Mozilla dependency.
@@ -73,7 +86,7 @@ shipped.
 ## Distribution inputs
 
 - `packaging/codex-plugin/` — Codex plugin template.
-- `packaging/claude-mcpb/` — Claude Desktop MCPB template using manifest `0.3`.
+- `packaging/claude-mcpb/` — Claude Desktop MCPB source using manifest `0.3`. `npm run package:all` turns it into a self-contained installable `.mcpb` carrying the server, the pinned Mozilla upstream, GeckoDriver, and the secure helper.
 - `packaging/windows/` — native host and secure-helper installation/removal scripts (dry-run by default).
 - `packaging/linux/` and `packaging/macos/` — per-user native-messaging registration templates; they do not add Windows-only secure companion transport.
 - `scripts/package-artifacts.mjs` — deterministic local artifact collector. It makes no installation, registry, network, or deployment changes.
