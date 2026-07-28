@@ -72,6 +72,31 @@ type McpToolResult = {
   readonly structuredContent?: unknown;
 };
 
+/**
+ * Reports whether a Marionette endpoint is present and unclaimed.
+ *
+ * Marionette greets a new connection immediately, so a socket that opens but stays silent means
+ * another client already holds the single available session.
+ */
+export const probeMarionetteEndpoint = async (
+  port: number,
+  timeoutMs = 2_000,
+): Promise<'free' | 'busy' | 'absent'> => {
+  const { createConnection } = await import('node:net');
+  return new Promise<'free' | 'busy' | 'absent'>((resolveOutcome) => {
+    const socket = createConnection({ host: '127.0.0.1', port });
+    const finish = (result: 'free' | 'busy' | 'absent'): void => {
+      clearTimeout(timer);
+      socket.removeAllListeners();
+      socket.destroy();
+      resolveOutcome(result);
+    };
+    const timer = setTimeout(() => finish('busy'), timeoutMs);
+    socket.once('data', () => finish('free'));
+    socket.once('error', () => finish('absent'));
+  });
+};
+
 export class MozillaUpstreamClient {
   public readonly sessionId = randomUUID();
   public readonly diagnostics: StartupDiagnostic[] = [];
@@ -191,19 +216,7 @@ export class MozillaUpstreamClient {
    * stays silent means somebody else already holds it.
    */
   private async preflightMarionette(port: number): Promise<void> {
-    const { createConnection } = await import('node:net');
-    const outcome = await new Promise<'free' | 'busy' | 'absent'>((resolveOutcome) => {
-      const socket = createConnection({ host: '127.0.0.1', port });
-      const finish = (result: 'free' | 'busy' | 'absent'): void => {
-        clearTimeout(timer);
-        socket.removeAllListeners();
-        socket.destroy();
-        resolveOutcome(result);
-      };
-      const timer = setTimeout(() => finish('busy'), 2_000);
-      socket.once('data', () => finish('free'));
-      socket.once('error', () => finish('absent'));
-    });
+    const outcome = await probeMarionetteEndpoint(port);
 
     if (outcome === 'free') {
       return;

@@ -14,6 +14,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CompanionBrowserSession,
   ControlledBrowserSession,
+  probeMarionetteEndpoint,
   type BrowserSession,
   type CompanionBrowserSessionOptions,
   type ControlledBrowserSessionOptions,
@@ -34,7 +35,7 @@ const PROFILE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/u;
 const execFileAsync = promisify(execFile);
 
 export interface CliOptions {
-  readonly mode: 'controlled' | 'attached' | 'companion';
+  readonly mode: 'auto' | 'controlled' | 'attached' | 'companion';
   readonly marionettePort?: number;
   readonly librewolfPath?: string;
   readonly profileRoot: string;
@@ -47,7 +48,7 @@ export interface CliOptions {
 }
 
 interface RawCliOptions {
-  mode: 'controlled' | 'attached' | 'companion';
+  mode: 'auto' | 'controlled' | 'attached' | 'companion';
   librewolfPath?: string;
   profilePath?: string;
   profileRoot?: string;
@@ -199,8 +200,8 @@ export const createCliProgram = (stderr: Pick<Writable, 'write'> = process.stder
     })
     .addOption(
       new Option('--mode <mode>', 'browser connection mode')
-        .choices(['controlled', 'attached', 'companion'])
-        .default('controlled'),
+        .choices(['auto', 'controlled', 'attached', 'companion'])
+        .default('auto'),
     )
     .option('--librewolf-path <path>', 'explicit LibreWolf executable path')
     .option(
@@ -336,6 +337,15 @@ export const createSessionForCli = async (
     );
   }
 
+  // In auto mode the browser itself decides: if an agent-ready LibreWolf is already listening,
+  // attach to it and keep the user's signed-in session; otherwise launch a dedicated profile so
+  // the tools still work. That makes the agent-ready shortcut the only switch a user needs.
+  const marionettePort = options.marionettePort ?? 2828;
+  let attach = options.mode === 'attached';
+  if (options.mode === 'auto') {
+    attach = (await probeMarionetteEndpoint(marionettePort)) === 'free';
+  }
+
   const discovery = dependencies.discover
     ? await dependencies.discover(options.librewolfPath)
     : await discoverLibreWolf(options.librewolfPath ? { manualPath: options.librewolfPath } : {});
@@ -353,7 +363,7 @@ export const createSessionForCli = async (
     ...(options.viewport ? { viewport: options.viewport } : {}),
     ...(options.startUrl ? { startUrl: options.startUrl } : {}),
     ...(windowsJobSupervisorPath ? { windowsJobSupervisorPath } : {}),
-    ...(options.mode === 'attached'
+    ...(attach
       ? {
           connectExisting: true,
           ...(options.marionettePort !== undefined
