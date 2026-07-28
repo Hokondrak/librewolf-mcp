@@ -34,7 +34,8 @@ const PROFILE_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/u;
 const execFileAsync = promisify(execFile);
 
 export interface CliOptions {
-  readonly mode: 'controlled' | 'companion';
+  readonly mode: 'controlled' | 'attached' | 'companion';
+  readonly marionettePort?: number;
   readonly librewolfPath?: string;
   readonly profileRoot: string;
   readonly profileName: string;
@@ -46,7 +47,7 @@ export interface CliOptions {
 }
 
 interface RawCliOptions {
-  mode: 'controlled' | 'companion';
+  mode: 'controlled' | 'attached' | 'companion';
   librewolfPath?: string;
   profilePath?: string;
   profileRoot?: string;
@@ -58,6 +59,7 @@ interface RawCliOptions {
   headless?: boolean;
   viewport?: string;
   startUrl?: string;
+  marionettePort?: string;
 }
 
 export interface CliIo {
@@ -197,7 +199,7 @@ export const createCliProgram = (stderr: Pick<Writable, 'write'> = process.stder
     })
     .addOption(
       new Option('--mode <mode>', 'browser connection mode')
-        .choices(['controlled', 'companion'])
+        .choices(['controlled', 'attached', 'companion'])
         .default('controlled'),
     )
     .option('--librewolf-path <path>', 'explicit LibreWolf executable path')
@@ -213,7 +215,8 @@ export const createCliProgram = (stderr: Pick<Writable, 'write'> = process.stder
     .option('--node-path <path>', 'alias for --runtime')
     .option('--headless', 'run the controlled LibreWolf profile headlessly', false)
     .option('--viewport <width>x<height>', 'controlled browser viewport (for example 1280x720)')
-    .option('--start-url <url>', 'initial controlled-profile URL');
+    .option('--start-url <url>', 'initial controlled-profile URL')
+    .option('--marionette-port <port>', 'Marionette port for --mode attached (default 2828)');
   return program;
 };
 
@@ -288,9 +291,17 @@ export const parseCliOptions = (
   );
   const initialUrl = startUrl(raw.startUrl);
   const initialViewport = viewport(raw.viewport);
+  const marionettePort = raw.marionettePort === undefined ? undefined : Number(raw.marionettePort);
+  if (
+    marionettePort !== undefined &&
+    (!Number.isInteger(marionettePort) || marionettePort < 1 || marionettePort > 65535)
+  ) {
+    throw new CliConfigurationError('--marionette-port must be a TCP port between 1 and 65535.');
+  }
 
   return {
     mode: raw.mode,
+    ...(marionettePort !== undefined ? { marionettePort } : {}),
     ...(librewolfPath ? { librewolfPath } : {}),
     profileRoot,
     profileName,
@@ -342,6 +353,14 @@ export const createSessionForCli = async (
     ...(options.viewport ? { viewport: options.viewport } : {}),
     ...(options.startUrl ? { startUrl: options.startUrl } : {}),
     ...(windowsJobSupervisorPath ? { windowsJobSupervisorPath } : {}),
+    ...(options.mode === 'attached'
+      ? {
+          connectExisting: true,
+          ...(options.marionettePort !== undefined
+            ? { marionettePort: options.marionettePort }
+            : {}),
+        }
+      : {}),
     removeProfileOnClose: false,
   };
   return (

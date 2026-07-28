@@ -22,6 +22,49 @@ Job Object as well as supporting the optional companion transport. If either
 check is `False`, do not register an MCP server; inspect and fix the build
 failure first.
 
+## Choosing a mode
+
+|                        | Controlled             | **Attached** | Companion                      |
+| ---------------------- | ---------------------- | ------------ | ------------------------------ |
+| Your signed-in session | no, dedicated profile  | **yes**      | yes                            |
+| Input                  | native                 | **native**   | synthetic (`isTrusted: false`) |
+| Console and network    | yes                    | **yes**      | no                             |
+| File upload            | yes                    | **yes**      | no                             |
+| Setup                  | none beyond the server | one shortcut | native host + extension        |
+
+**Attached mode is the closest thing to a first-party browser connector.** It joins the
+LibreWolf you already use, so your logins are there, and it still drives the browser through
+WebDriver BiDi, so input is native and console and network capture work. Companion mode's
+synthetic input — which sites with bot detection reject, and which cannot open a file picker or
+satisfy a WebAuthn prompt — is a limitation of what a WebExtension can do at all, and attached
+mode simply does not have it.
+
+The cost is one requirement: LibreWolf must be started with `--marionette` and
+`--remote-debugging-port`. Firefox only starts Marionette from the command line, so no preference
+can substitute for those flags (verified: setting `marionette.enabled` alone does not open the
+port).
+
+```powershell
+packaging\windows\enable-attached-mode.ps1            # preview
+packaging\windows\enable-attached-mode.ps1 -Apply     # create the shortcut
+```
+
+That writes a "LibreWolf (agent ready)" shortcut. Launch the browser from it and the flags are
+invisible from then on. Then point your client at:
+
+```text
+--mode attached --marionette-port 2828
+```
+
+`browser_status` should report `"mode": "attached"`.
+
+**Security, stated plainly:** while a browser started this way is running, it listens on a
+loopback automation port, and any program running as you can drive it — including its signed-in
+sessions. That is why the script creates a separate shortcut you launch deliberately rather than
+replacing your normal one, and why it changes no preferences. Close the browser when you are
+done. If that trade is not acceptable, use controlled mode, which has no port and no access to
+your session, or companion mode, which needs no port but has synthetic input.
+
 ## Node version is the most common failure
 
 The pinned Mozilla upstream requires Node `>=20.19.0`. An MCP client launches

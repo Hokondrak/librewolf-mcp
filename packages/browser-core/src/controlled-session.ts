@@ -70,6 +70,13 @@ export interface ControlledBrowserSessionOptions {
   readonly startUrl?: string;
   readonly preferences?: Readonly<Record<string, string | number | boolean>>;
   readonly removeProfileOnClose?: boolean;
+  /**
+   * Attach to a LibreWolf the user already started rather than launching a dedicated profile.
+   * Keeps their signed-in session while still using WebDriver BiDi, so input stays native and
+   * console and network capture keep working. The bridge takes no profile lease in this mode.
+   */
+  readonly connectExisting?: boolean;
+  readonly marionettePort?: number;
   readonly windowsJobSupervisorPath?: string;
   readonly upstreamFactory?: (options: MozillaUpstreamOptions) => MozillaUpstreamClient;
 }
@@ -342,7 +349,9 @@ export class ControlledBrowserSession implements BrowserSession {
 
   public async status(): Promise<BrowserStatus> {
     return {
-      mode: 'controlled',
+      // Attached sessions use the same BiDi stack but join a browser the user owns, so the
+      // client must be able to tell the two apart.
+      mode: this.options.connectExisting ? 'attached' : 'controlled',
       state: this.state,
       sessionId: this.sessionId,
       browserPath: this.options.browserPath,
@@ -1034,7 +1043,9 @@ export class ControlledBrowserSession implements BrowserSession {
       throw new BrowserBridgeError('SHUTDOWN', 'The browser session is closed.');
     }
     this.state = 'starting';
-    if (!this.profileLease) {
+    // Attached mode joins a browser the user already started and owns, so the bridge must not
+    // take a profile lease or manage a profile it did not create.
+    if (!this.profileLease && !this.options.connectExisting) {
       this.addDiagnostic('profile', true, 'Acquiring dedicated profile ownership.');
       this.profileLease = await this.profileManager.acquire(this.options.profileName ?? 'default');
     }
@@ -1045,8 +1056,16 @@ export class ControlledBrowserSession implements BrowserSession {
     if (!this.upstream) {
       const upstreamOptions: MozillaUpstreamOptions = {
         firefoxPath: this.options.browserPath,
-        profileParent: this.profileLease.upstreamProfilePath,
+        profileParent: this.profileLease?.upstreamProfilePath ?? this.options.outputDirectory,
         outputDirectory: this.options.outputDirectory,
+        ...(this.options.connectExisting
+          ? {
+              connectExisting: true,
+              ...(this.options.marionettePort !== undefined
+                ? { marionettePort: this.options.marionettePort }
+                : {}),
+            }
+          : {}),
         ...(this.options.nodePath ? { nodePath: this.options.nodePath } : {}),
         ...(this.options.headless !== undefined ? { headless: this.options.headless } : {}),
         ...(this.options.viewport ? { viewport: this.options.viewport } : {}),

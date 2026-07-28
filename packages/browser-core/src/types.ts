@@ -1,4 +1,4 @@
-export type BrowserMode = 'controlled' | 'companion';
+export type BrowserMode = 'controlled' | 'attached' | 'companion';
 export type CapabilityLevel = 'available' | 'degraded' | 'unavailable';
 
 export interface CapabilityState {

@@ -50,6 +50,14 @@ export interface MozillaUpstreamOptions {
   readonly environment?: Readonly<Record<string, string>>;
   readonly connectTimeoutMs?: number;
   readonly windowsJobSupervisorPath?: string;
+  /**
+   * Attach to a LibreWolf the user already started, instead of launching one. The browser must
+   * have been started with `--marionette` and `--remote-debugging-port`. This keeps the user's
+   * own profile — and therefore their sessions — while still using WebDriver BiDi, so input is
+   * native and console and network capture work.
+   */
+  readonly connectExisting?: boolean;
+  readonly marionettePort?: number;
 }
 
 export interface UpstreamCallResult {
@@ -196,12 +204,18 @@ export class MozillaUpstreamClient {
       );
     }
 
-    await mkdir(this.options.profileParent, { recursive: true });
     await mkdir(this.options.outputDirectory, { recursive: true });
-    this.addDiagnostic('profile', true, 'Dedicated profile parent is ready.', {
-      profileParent: this.options.profileParent,
-      effectiveProfile: resolve(this.options.profileParent, 'firefox_devtools_mcp_profile'),
-    });
+    if (this.options.connectExisting) {
+      this.addDiagnostic('profile', true, 'Attaching to a browser the user already started.', {
+        marionettePort: this.options.marionettePort ?? 2828,
+      });
+    } else {
+      await mkdir(this.options.profileParent, { recursive: true });
+      this.addDiagnostic('profile', true, 'Dedicated profile parent is ready.', {
+        profileParent: this.options.profileParent,
+        effectiveProfile: resolve(this.options.profileParent, 'firefox_devtools_mcp_profile'),
+      });
+    }
 
     let entry: string;
     try {
@@ -215,22 +229,35 @@ export class MozillaUpstreamClient {
       );
     }
 
-    const args = [
-      entry,
-      '--firefox-path',
-      this.options.firefoxPath,
-      '--profile-path',
-      this.options.profileParent,
-      '--tools',
-      'pages,snapshot,input,network,console,screenshot,downloads,utilities,script',
-    ];
-    if (this.options.headless) {
+    const tools = 'pages,snapshot,input,network,console,screenshot,downloads,utilities,script';
+
+    // Attached mode joins a browser the user already started, so the launch-shaping options
+    // (profile, headless, viewport, start URL) do not apply to it.
+    const args = this.options.connectExisting
+      ? [
+          entry,
+          '--connectExisting',
+          '--marionettePort',
+          String(this.options.marionettePort ?? 2828),
+          '--tools',
+          tools,
+        ]
+      : [
+          entry,
+          '--firefox-path',
+          this.options.firefoxPath,
+          '--profile-path',
+          this.options.profileParent,
+          '--tools',
+          tools,
+        ];
+    if (!this.options.connectExisting && this.options.headless) {
       args.push('--headless');
     }
-    if (this.options.viewport) {
+    if (!this.options.connectExisting && this.options.viewport) {
       args.push('--viewport', `${this.options.viewport.width}x${this.options.viewport.height}`);
     }
-    if (this.options.startUrl) {
+    if (!this.options.connectExisting && this.options.startUrl) {
       args.push('--start-url', this.options.startUrl);
     }
     for (const [name, value] of Object.entries(this.options.preferences ?? {})) {
