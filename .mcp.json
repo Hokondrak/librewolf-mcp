@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "librewolf-agent-bridge": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\Maxim\\Documents\\aVSCODE\\librewolf-mcp\\apps\\mcp-server\\dist\\cli.js"
+      ]
+    }
+  }
+}

@@ -22,7 +22,30 @@ Job Object as well as supporting the optional companion transport. If either
 check is `False`, do not register an MCP server; inspect and fix the build
 failure first.
 
-When it is `True`, configure your client with an absolute path:
+## Node version is the most common failure
+
+The pinned Mozilla upstream requires Node `>=20.19.0`. An MCP client launches
+the server with whatever `node` resolves to on its own `PATH`, which is often
+the system install rather than the one in your shell. If that is too old, the
+server exits immediately with:
+
+```text
+[librewolf-agent-bridge] Node.js 20.18.2 is unsupported; install Node.js 20.19.0 or newer.
+```
+
+The client will report this only as a failed or disconnected server. Either
+install a supported Node, or set `command` to the absolute path of a supported
+`node.exe` instead of the bare name `node`.
+
+## Client configuration
+
+Every example is stdio and uses an absolute path. Replace
+`C:\src\librewolf-mcp` with your checkout.
+
+### Claude Desktop
+
+Edit `%APPDATA%\Claude\claude_desktop_config.json` and merge in an
+`mcpServers` key at the top level:
 
 ```json
 {
@@ -35,7 +58,57 @@ When it is `True`, configure your client with an absolute path:
 }
 ```
 
-Reconnect the client and call `browser_status`. A successful controlled session should report a dedicated profile and `controlled` mode. It should not reuse your personal LibreWolf profile.
+Restart Claude Desktop fully; reloading a conversation is not enough.
+
+### Claude Code
+
+Either commit a `.mcp.json` at the root of the project you want the browser
+available in:
+
+```json
+{
+  "mcpServers": {
+    "librewolf-agent-bridge": {
+      "command": "node",
+      "args": ["C:\\src\\librewolf-mcp\\apps\\mcp-server\\dist\\cli.js"]
+    }
+  }
+}
+```
+
+Or register it from a terminal without editing files:
+
+```bash
+claude mcp add librewolf-agent-bridge -- node C:/src/librewolf-mcp/apps/mcp-server/dist/cli.js
+```
+
+### Codex CLI
+
+Add to `%USERPROFILE%\.codex\config.toml`. The startup timeout matters: a first
+run downloads GeckoDriver and launches a browser.
+
+```toml
+[mcp_servers.librewolf-agent-bridge]
+command = "node"
+args = ['C:/src/librewolf-mcp/apps/mcp-server/dist/cli.js']
+startup_timeout_sec = 90
+```
+
+### ChatGPT Desktop
+
+ChatGPT Desktop reads the same stdio MCP server shape. Add the server through
+its connector settings using command `node` and the single argument
+`C:\src\librewolf-mcp\apps\mcp-server\dist\cli.js`. The server itself is
+client-agnostic; it contains no client-specific code.
+
+## Verifying the connection
+
+Reconnect the client and call `browser_status`. A successful controlled session
+reports `"mode": "controlled"` and a dedicated profile path under the managed
+profile root. It must not reference your personal LibreWolf profile. If the
+server fails to start, its stderr carries a stage-specific diagnostic naming the
+step that failed — runtime, locate, profile, spawn, initialize, or tool
+contract.
 
 ## Codex plugin template
 
