@@ -182,6 +182,48 @@ export class MozillaUpstreamClient {
     this.addDiagnostic('shutdown', true, 'Mozilla MCP child and controlled browser closed.');
   }
 
+  /**
+   * Checks that a Marionette endpoint exists and is unclaimed before attaching.
+   *
+   * Marionette serves one client at a time. A second client still completes every startup stage
+   * and reports `ready`, then every tool call times out — a failure that looks like a healthy
+   * session. Marionette also greets a new connection immediately, so a socket that opens but
+   * stays silent means somebody else already holds it.
+   */
+  private async preflightMarionette(port: number): Promise<void> {
+    const { createConnection } = await import('node:net');
+    const outcome = await new Promise<'free' | 'busy' | 'absent'>((resolveOutcome) => {
+      const socket = createConnection({ host: '127.0.0.1', port });
+      const finish = (result: 'free' | 'busy' | 'absent'): void => {
+        clearTimeout(timer);
+        socket.removeAllListeners();
+        socket.destroy();
+        resolveOutcome(result);
+      };
+      const timer = setTimeout(() => finish('busy'), 2_000);
+      socket.once('data', () => finish('free'));
+      socket.once('error', () => finish('absent'));
+    });
+
+    if (outcome === 'free') {
+      return;
+    }
+    if (outcome === 'absent') {
+      this.fail('spawn', `No Marionette endpoint on port ${port}.`);
+      throw new BrowserBridgeError(
+        'BROWSER_CONNECTION_FAILED',
+        `No LibreWolf is listening for automation on port ${port}. Start LibreWolf with --marionette and --remote-debugging-port — the "LibreWolf (agent ready)" shortcut does this — and leave it running.`,
+        { stage: 'spawn', recoverable: true, marionettePort: port },
+      );
+    }
+    this.fail('spawn', `Marionette port ${port} is already claimed by another client.`);
+    throw new BrowserBridgeError(
+      'BROWSER_CONNECTION_FAILED',
+      `Another automation client is already attached to this LibreWolf on port ${port}. Marionette serves one client at a time. Close the other MCP client or session and retry.`,
+      { stage: 'spawn', recoverable: true, marionettePort: port },
+    );
+  }
+
   private async start(): Promise<void> {
     this.state = 'starting';
     this.addDiagnostic('runtime', true, `Runtime ${process.version} selected.`);
@@ -206,6 +248,7 @@ export class MozillaUpstreamClient {
 
     await mkdir(this.options.outputDirectory, { recursive: true });
     if (this.options.connectExisting) {
+      await this.preflightMarionette(this.options.marionettePort ?? 2828);
       this.addDiagnostic('profile', true, 'Attaching to a browser the user already started.', {
         marionettePort: this.options.marionettePort ?? 2828,
       });
