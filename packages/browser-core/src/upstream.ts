@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 
@@ -268,6 +268,9 @@ export class MozillaUpstreamClient {
     this.addDiagnostic('spawn', true, 'Starting pinned Mozilla MCP child.', {
       package: '@mozilla/firefox-devtools-mcp@0.9.15',
       executable: this.options.nodePath ?? process.execPath,
+      ...(this.options.nodePath === undefined && this.hostIsElectron
+        ? { runtimeMode: 'electron-as-node' }
+        : {}),
     });
 
     try {
@@ -371,6 +374,27 @@ export class MozillaUpstreamClient {
     });
   }
 
+  /**
+   * True when this process is an Electron host rather than a plain Node binary.
+   *
+   * An MCP client may launch the server with its own bundled runtime — Claude Desktop runs the
+   * packaged extension under `claude.exe`. `process.execPath` is then the desktop application,
+   * not a Node interpreter, and spawning it with a JavaScript entry point starts a second copy of
+   * the app instead of the Mozilla child. The transport sees no JSON-RPC and reports
+   * "Unexpected end of JSON input".
+   */
+  private get hostIsElectron(): boolean {
+    return (
+      process.versions['electron'] !== undefined ||
+      !/^node(?:\.exe)?$/iu.test(basename(process.execPath))
+    );
+  }
+
+  /**
+   * Electron only behaves as a Node interpreter when `ELECTRON_RUN_AS_NODE` is set, so the child
+   * inherits it whenever the host is Electron and no explicit runtime was configured. That keeps
+   * the packaged extension self-contained instead of depending on a separate Node install.
+   */
   private safeEnvironment(): Record<string, string> {
     const allowed = [
       'PATH',
@@ -391,6 +415,9 @@ export class MozillaUpstreamClient {
       if (value !== undefined) {
         environment[name] = value;
       }
+    }
+    if (this.options.nodePath === undefined && this.hostIsElectron) {
+      environment['ELECTRON_RUN_AS_NODE'] = '1';
     }
     Object.assign(environment, this.options.environment ?? {});
     return environment;
