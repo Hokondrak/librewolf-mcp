@@ -486,17 +486,40 @@ export class ControlledBrowserSession implements BrowserSession {
   public async snapshot(options: SnapshotOptions): Promise<SnapshotResult> {
     return this.measure('snapshot', async () => {
       const tab = await this.requireSelectedTab();
-      const source = await this.upstreamCall(
-        'take_snapshot',
-        {
-          maxLines: Math.min(Math.max((options.maxElements ?? 500) * 3, 100), 5_000),
-          includeAttributes: options.includeAttributes ?? false,
-          includeText: options.includeText ?? true,
-          ...(options.maxDepth !== undefined ? { maxDepth: options.maxDepth } : {}),
-          ...(options.selector ? { selector: options.selector } : {}),
-        },
-        true,
-      );
+      const upstreamArguments = (
+        selector: string | undefined,
+      ): Readonly<Record<string, unknown>> => ({
+        maxLines: Math.min(Math.max((options.maxElements ?? 500) * 3, 100), 5_000),
+        includeAttributes: options.includeAttributes ?? false,
+        includeText: options.includeText ?? true,
+        ...(options.maxDepth !== undefined ? { maxDepth: options.maxDepth } : {}),
+        ...(selector ? { selector } : {}),
+      });
+
+      let source: UpstreamCallResult;
+      try {
+        source = await this.upstreamCall(
+          'take_snapshot',
+          upstreamArguments(options.selector),
+          true,
+        );
+      } catch (error) {
+        // The pinned upstream fails on every selector except `body`, so a scoped request that
+        // errors is reported as the capability gap it is rather than as a page problem.
+        if (options.selector !== undefined) {
+          throw new BrowserBridgeError(
+            'CAPABILITY_UNAVAILABLE',
+            `Scoped snapshots are unavailable: @mozilla/firefox-devtools-mcp@0.9.15 fails for every selector except "body". Retake browser_snapshot without "selector" and narrow the result with interactive_only, max_elements, or max_depth.`,
+            {
+              stage: 'snapshot',
+              recoverable: true,
+              selector: options.selector,
+              cause: asBridgeError(error).message,
+            },
+          );
+        }
+        throw error;
+      }
       tab.domGeneration += 1;
       const normalizedSource = extractSnapshotBody(source.text);
       const parsed = parseMozillaCompactSnapshot({ text: normalizedSource.text });
@@ -569,14 +592,20 @@ export class ControlledBrowserSession implements BrowserSession {
         },
       );
       this.latestSnapshots.set(tab.id, engineResult);
+      // Notices sit outside the untrusted boundary: they are bridge facts, not page content.
+      // Without them a depth-truncated tree looks complete and the model reports missing
+      // content as absent rather than unread.
+      const content = normalizedSource.sourceTruncated
+        ? `WARNING: the browser reached its snapshot size limit, so the end of this page is missing rather than absent. Treat it as unread, not empty. Narrow the request with interactive_only or max_elements, or scroll and retake.\n${engineResult.content}`
+        : engineResult.content;
       return {
         snapshotId: engineResult.snapshotId,
         tabId: tab.id,
         navigationGeneration: tab.navigationGeneration,
         mutationGeneration: tab.domGeneration,
-        text: engineResult.content,
+        text: content,
         elementCount: engineResult.elements.length,
-        bytes: Buffer.byteLength(engineResult.content, 'utf8'),
+        bytes: Buffer.byteLength(content, 'utf8'),
         truncated: engineResult.truncated || normalizedSource.sourceTruncated,
         ...(engineResult.savedFile ? { savedTo: engineResult.savedFile.path } : {}),
         ...(engineResult.delta

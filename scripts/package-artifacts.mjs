@@ -12,6 +12,8 @@ import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
+import { patchUpstreamSnapshot } from './patch-upstream-snapshot.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = resolve(root, process.env.PACKAGE_OUTPUT_DIR ?? 'artifacts');
 const staging = resolve(output, '.staging');
@@ -341,6 +343,17 @@ async function populateServerPayload(extractedPackage, destination, packageJson)
     ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'],
     destination,
   );
+  // The staged install is a fresh dependency tree, so the workspace patch does not carry over.
+  // Without this, a shipped bundle silently reverts to the upstream depth-10 walker.
+  await patchStagedSnapshotScript(destination);
+}
+
+/**
+ * Applies the pinned-upstream snapshot limit patches to a staged payload, reusing the same
+ * definitions as the workspace patch so a shipped bundle cannot drift from a local build.
+ */
+async function patchStagedSnapshotScript(destination) {
+  await patchUpstreamSnapshot(resolve(destination, 'node_modules/@mozilla/firefox-devtools-mcp'));
 }
 
 async function populateNativePayload(destination, nativePackageJson) {

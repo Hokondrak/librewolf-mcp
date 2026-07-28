@@ -13,7 +13,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b packages/browser-core && npm run build --workspace @librewolf-agent-bridge/native-host && npm run build --workspace librewolf-agent-bridge",
+    "build": "npm run patch:upstream && tsc -b packages/browser-core && npm run build --workspace @librewolf-agent-bridge/native-host && npm run build --workspace librewolf-agent-bridge",
     "clean": "npm run clean --workspaces --if-present",
     "typecheck": "tsc -b",
     "test": "vitest run",
@@ -27,7 +27,9 @@
     "benchmark": "vitest bench --run",
     "profile:performance": "node scripts/profile-performance.mjs",
     "package:all": "node scripts/package-artifacts.mjs",
-    "validate:plugin": "python C:/Users/Maxim/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py packaging/codex-plugin/librewolf-agent-bridge"
+    "validate:plugin": "python C:/Users/Maxim/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py packaging/codex-plugin/librewolf-agent-bridge",
+    "patch:upstream": "node scripts/patch-upstream-snapshot.mjs",
+    "postinstall": "node scripts/patch-upstream-snapshot.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

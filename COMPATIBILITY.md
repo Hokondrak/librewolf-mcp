@@ -109,7 +109,30 @@ browsingContext.navigate`. Navigation to a distinct URL passed. The bridge
    `restart_firefox` with caller-controlled binary/profile/environment
    arguments. Production mode does not expose that upstream module; bridge
    diagnostics are implemented separately.
-10. **Geckodriver first-use message.** Mozilla logs that it is downloading via
+10. **Snapshot depth limit silently discards page content.** The injected DOM walker stops at
+    depth 10 (`var le=10`) and marks the result truncated. `take_snapshot` advertises a
+    `maxDepth` parameter, but the string does not appear in the injected script at all: it is
+    ignored. Ordinary pages exceed depth 10 through layout wrappers alone — Hacker News nests
+    every story link at depth 11 behind `center > table#hnmain > tbody`, so all thirty vanish
+    while their empty parent spans remain. The snapshot looks structurally complete and contains
+    no content. Unpatched: 79 elements, no titles. Patched: 440 elements, all titles.
+11. **Scoped snapshots are broken.** `take_snapshot` advertises `selector` for scoping, which
+    would restart the depth budget and work around defect 10. Every selector except `body` fails
+    with `Failed to generate snapshot: Unknown error` — verified against `#hnmain`, `table`,
+    `td`, `.athing`, and `#hnmain > tbody` on a page where all of them match. The bridge reports
+    a scoped request as `CAPABILITY_UNAVAILABLE` rather than as a page error.
+12. **Every attribute is truncated to 30 characters.** `MAX_ATTR_LENGTH = 30` clips accessible
+    names, `href`, `value`, `src`, and text runs before any consumer sees them, which cuts most
+    real headlines and URLs mid-word. The bridge applies its own bounds (names 300, URLs 240)
+    well above this, so upstream's limit only destroys data.
+
+    Defects 10 and 12 are corrected by `scripts/patch-upstream-snapshot.mjs`, which raises the
+    two numeric constants in the pinned build at install and package time. Mozilla's logic,
+    license, and notices are unmodified. The patch is idempotent and fails loudly if the pinned
+    build changes, and `tests/integration/upstream-patch.test.ts` fails if it was not applied.
+    All three are upstream contribution candidates.
+
+13. **Geckodriver first-use message.** Mozilla logs that it is downloading via
     its pinned npm geckodriver package when no driver is cached. Packaging and
     troubleshooting must distinguish this from a network download failure.
 
