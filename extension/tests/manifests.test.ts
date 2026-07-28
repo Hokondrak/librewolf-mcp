@@ -51,7 +51,10 @@ describe.each([
     const manifest = await readManifest(filename);
     expect(manifest.background.scripts).toEqual(['background/index.js']);
     expect(manifest.background.service_worker).toBeUndefined();
-    if (variant === 'MV2') expect(manifest.background.persistent).toBe(false);
+    // MV2 must stay persistent: a suspended event page tears down the native messaging port
+    // the companion transport depends on, which showed up as "Companion extension disconnected"
+    // partway through a session.
+    if (variant === 'MV2') expect(manifest.background.persistent).toBe(true);
   });
 });
 

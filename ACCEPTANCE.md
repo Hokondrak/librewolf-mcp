@@ -82,5 +82,19 @@ resolved one.
 Firefox 154 or newer. It is reported as unavailable rather than silently degraded.
 
 **Companion mode** is Windows-only, because its hardened transport depends on named-pipe ACL
-verification. Console and network inspection are unavailable in companion mode and report so
-through `browser_status`.
+verification. It is verified end to end against a real LibreWolf session by
+`tests/e2e/live-companion.test.ts`, which requires an installed native messaging host:
+
+```powershell
+npm run build
+npm run package:all
+packaging\windows\install-native-host.ps1 -PayloadRoot <payload> -Apply
+$env:LIBREWOLF_AGENT_BRIDGE_COMPANION_E2E = '1'
+npm run test:e2e
+```
+
+The suite covers connection, real tab listing with titles and URLs, a real page snapshot, a UID
+click that moves the tab, and refusal of an unapproved origin. Console and network inspection
+remain unavailable there — they need WebDriver BiDi — and input is reported `degraded` because
+companion clicks and typing are synthetic. Both are reported through `browser_status` rather
+than being presented as working.

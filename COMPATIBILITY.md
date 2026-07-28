@@ -162,10 +162,22 @@ failed outright on Windows PowerShell 5.1; and the generated launcher synthesise
 `--extension-id` instead of forwarding `%*`, so Firefox's `<manifest-path> <extension-id>`
 arguments never reached the host, which refused to start.
 
-**Current state:** the host installs and registers, the hardened runtime directory is created,
-and the record publishes. The server then waits for an authenticated companion that does not
-arrive. The remaining work is the host-to-server handshake over the named pipe. Controlled mode
-is unaffected by any of this.
+**The MV2 background page must be persistent.** Both manifests originally declared an event page.
+A suspended event page tears down the native messaging port the whole transport depends on, which
+appeared as `browser_status` and `browser_list_tabs` succeeding and the next call failing with
+"Companion extension disconnected".
+
+**Current state: working, and covered by `tests/e2e/live-companion.test.ts`.** Against a real
+LibreWolf session the bridge reports `mode: companion, state: ready`, lists the session's tabs
+with their real titles and URLs, snapshots a real page behind the untrusted-content boundary,
+clicks a UID and moves the tab, and refuses an unapproved origin with `PERMISSION_REQUIRED`
+naming the origin and the approval surface.
+
+Two properties are structural rather than defects. Console and network inspection are
+unavailable because they require WebDriver BiDi, which only the controlled profile has. Input is
+`degraded`: companion clicks and typing are synthetic (`isTrusted: false`), and every action
+result says so rather than implying a trusted event, so sites that reject synthetic input will
+reject these too.
 
 ## Upstream tool selection
 
