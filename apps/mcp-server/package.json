@@ -1,0 +1,33 @@
+{
+  "name": "librewolf-agent-bridge",
+  "version": "0.1.0",
+  "description": "Local-first MCP browser automation for LibreWolf.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "librewolf-agent-bridge": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "npm run clean && tsup && node scripts/copy-native-helper.mjs",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "@mozilla/firefox-devtools-mcp": "0.9.15",
+    "commander": "^14.0.0",
+    "zod": "^3.25.76"
+  }
+}

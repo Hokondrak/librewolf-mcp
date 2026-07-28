@@ -1,0 +1,18 @@
+{
+  "name": "@librewolf-agent-bridge/native-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "librewolf-agent-native-host": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "npm run clean && tsup && tsc -p tsconfig.build.json && npm run build:native",
+    "build:native": "node native/build.mjs",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run build:native && vitest run src"
+  }
+}

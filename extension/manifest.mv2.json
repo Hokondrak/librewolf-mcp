@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "LibreWolf Agent Bridge",
+  "description": "Local-first companion bridge for user-approved LibreWolf automation.",
+  "version": "0.1.0",
+  "permissions": ["nativeMessaging", "tabs", "storage", "scripting", "activeTab", "alarms"],
+  "optional_permissions": ["downloads", "clipboardRead", "http://*/*", "https://*/*"],
+  "background": {
+    "scripts": ["background/index.js"],
+    "persistent": false
+  },
+  "browser_action": {
+    "default_title": "LibreWolf Agent Bridge",
+    "default_popup": "popup/index.html"
+  },
+  "options_ui": {
+    "page": "options/index.html",
+    "open_in_tab": true
+  },
+  "incognito": "not_allowed",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "librewolf-agent-bridge@librewolf-agent-bridge.org",
+      "strict_min_version": "102.0"
+    }
+  }
+}

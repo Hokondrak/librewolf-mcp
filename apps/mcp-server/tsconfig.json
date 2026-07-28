@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "references": [
+    { "path": "../native-host" },
+    { "path": "../../packages/protocol" },
+    { "path": "../../packages/security" },
+    { "path": "../../packages/librewolf-locator" },
+    { "path": "../../packages/browser-core" }
+  ],
+  "include": ["src/**/*.ts"]
+}

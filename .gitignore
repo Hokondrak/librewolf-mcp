@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.cache/
+.temp/
+*.log
+*.tsbuildinfo
+*.xpi
+*.mcpb
+*.tgz
+artifacts/
+runtime/
+profiles/
+screenshots/
+
+artifacts-repro/

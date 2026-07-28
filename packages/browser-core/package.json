@@ -1,0 +1,27 @@
+{
+  "name": "@librewolf-agent-bridge/browser-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@librewolf-agent-bridge/librewolf-locator": "0.1.0",
+    "@librewolf-agent-bridge/protocol": "0.1.0",
+    "@librewolf-agent-bridge/security": "0.1.0",
+    "@librewolf-agent-bridge/snapshot-engine": "0.1.0",
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "@mozilla/firefox-devtools-mcp": "0.9.15",
+    "zod": "^3.25.76"
+  }
+}

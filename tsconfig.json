@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/protocol" },
+    { "path": "./packages/security" },
+    { "path": "./packages/librewolf-locator" },
+    { "path": "./packages/snapshot-engine" },
+    { "path": "./packages/browser-core" },
+    { "path": "./apps/mcp-server" },
+    { "path": "./apps/native-host" },
+    { "path": "./tests" }
+  ]
+}

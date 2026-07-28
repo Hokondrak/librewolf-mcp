@@ -1,0 +1,7 @@
+{
+  "name": "org.librewolf_agent_bridge.native",
+  "description": "LibreWolf Agent Bridge native messaging host (companion template)",
+  "path": "__HOST_PATH__",
+  "type": "stdio",
+  "allowed_extensions": ["librewolf-agent-bridge@librewolf-agent-bridge.org"]
+}

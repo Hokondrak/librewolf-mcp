@@ -1,0 +1,25 @@
+{
+  "name": "librewolf-agent-bridge",
+  "version": "0.1.0",
+  "description": "Local-first LibreWolf browser automation through a semantic MCP tool surface.",
+  "author": {
+    "name": "librewolf-agent-bridge contributors"
+  },
+  "license": "Apache-2.0",
+  "keywords": ["librewolf", "firefox", "browser", "automation", "mcp"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "LibreWolf Agent Bridge",
+    "shortDescription": "Control local LibreWolf with compact, safe browser tools",
+    "longDescription": "Inspect and automate a dedicated LibreWolf profile or a permission-gated existing session without sending browser data to an external service.",
+    "developerName": "librewolf-agent-bridge contributors",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "Inspect the current LibreWolf page and summarize it.",
+      "Complete this browser task using compact snapshots.",
+      "Diagnose this page using console and network evidence."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

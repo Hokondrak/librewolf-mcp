@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "../.temp/typecheck/tests",
+    "tsBuildInfoFile": "../.temp/typecheck/tests/.tsbuildinfo",
+    "types": ["node"]
+  },
+  "references": [
+    { "path": "../packages/protocol" },
+    { "path": "../packages/security" },
+    { "path": "../packages/librewolf-locator" },
+    { "path": "../packages/snapshot-engine" },
+    { "path": "../packages/browser-core" },
+    { "path": "../apps/mcp-server" }
+  ],
+  "include": ["**/*.ts"]
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LibreWolf Agent Bridge</title>
+    <style>
+      body {
+        font:
+          13px system-ui,
+          sans-serif;
+        min-width: 340px;
+        margin: 16px;
+        color: CanvasText;
+        background: Canvas;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 12px;
+      }
+      #origin {
+        overflow-wrap: anywhere;
+        font-family: monospace;
+      }
+      #request {
+        border: 1px solid color-mix(in srgb, CanvasText 25%, transparent);
+        border-radius: 6px;
+        padding: 10px;
+      }
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      button {
+        padding: 7px;
+      }
+      .muted {
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>LibreWolf Agent Bridge</h1>
+    <p id="status" class="muted">Checking local bridge…</p>
+    <section id="request" hidden>
+      <strong>User approval required</strong>
+      <p id="origin"></p>
+      <p id="categories"></p>
+      <div class="actions">
+        <button data-decision="allow_once">Allow once</button>
+        <button data-decision="allow_session">Allow this session</button>
+        <button data-decision="always_allow">Always allow</button>
+        <button data-decision="deny_once">Deny</button>
+        <button data-decision="always_deny">Always deny</button>
+      </div>
+    </section>
+    <p><button id="options">Manage permissions</button></p>
+    <script src="index.js"></script>
+  </body>
+</html>

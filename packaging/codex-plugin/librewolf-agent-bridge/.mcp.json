@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "librewolf-agent-bridge": {
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/server/cli.js"]
+    }
+  }
+}

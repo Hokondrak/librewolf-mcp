@@ -1,0 +1,19 @@
+# Normalize to LF in the repository so a Windows checkout cannot publish CRLF into files
+# that must stay LF on other platforms.
+* text=auto eol=lf
+
+# Shell scripts break with `bad interpreter` if they ever gain CRLF.
+*.sh text eol=lf
+
+# PowerShell and Windows command files stay CRLF in the working tree.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.template text eol=crlf
+
+# Binary assets must never be line-ending converted.
+*.png binary
+*.exe binary
+*.xpi binary
+*.mcpb binary
+*.tgz binary
+*.zip binary

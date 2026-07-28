@@ -1,0 +1,23 @@
+{
+  "manifest_version": "0.3",
+  "name": "librewolf-agent-bridge",
+  "version": "0.1.0",
+  "description": "Local-first controlled-profile LibreWolf automation through a bounded MCP tool surface.",
+  "author": {
+    "name": "librewolf-agent-bridge contributors"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/cli.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/cli.js"]
+    }
+  },
+  "compatibility": {
+    "platforms": ["win32"],
+    "runtimes": {
+      "node": ">=20.19.0"
+    }
+  }
+}

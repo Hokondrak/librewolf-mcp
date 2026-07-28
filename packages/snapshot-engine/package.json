@@ -1,0 +1,22 @@
+{
+  "name": "@librewolf-agent-bridge/snapshot-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@librewolf-agent-bridge/protocol": "0.1.0",
+    "@librewolf-agent-bridge/security": "0.1.0"
+  }
+}

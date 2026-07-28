@@ -1,0 +1,4 @@
+@echo off
+setlocal
+"__NODE_PATH__" "__HOST_CLI_PATH__" --extension-id "librewolf-agent-bridge@librewolf-agent-bridge.org"
+exit /b %ERRORLEVEL%

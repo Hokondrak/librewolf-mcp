@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LibreWolf Agent Bridge permissions</title>
+    <style>
+      body {
+        max-width: 800px;
+        margin: 32px auto;
+        padding: 0 20px;
+        font:
+          15px system-ui,
+          sans-serif;
+      }
+      input {
+        min-width: 360px;
+        padding: 7px;
+      }
+      button {
+        padding: 7px 10px;
+      }
+      li {
+        margin: 8px 0;
+        overflow-wrap: anywhere;
+      }
+      code {
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>LibreWolf Agent Bridge permissions</h1>
+    <p>Permissions are exact-origin grants. Webpage text cannot change these settings.</p>
+    <form id="grant-form">
+      <label>
+        Origin
+        <input id="origin" type="url" placeholder="https://example.com" required />
+      </label>
+      <button type="submit">Grant page access</button>
+    </form>
+    <p id="message" role="status"></p>
+    <h2>Persistent policies</h2>
+    <ul id="policies"></ul>
+    <script src="index.js"></script>
+  </body>
+</html>

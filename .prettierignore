@@ -1,0 +1,12 @@
+node_modules/
+**/dist/
+coverage/
+.cache/
+.temp/
+artifacts/
+artifacts-repro/
+**/build/
+*.tsbuildinfo
+*.xpi
+*.mcpb
+*.tgz

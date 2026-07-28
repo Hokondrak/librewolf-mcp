@@ -1,0 +1,4 @@
+interface:
+  display_name: "Control LibreWolf"
+  short_description: "Automate and inspect local LibreWolf tabs"
+  default_prompt: "Use $control-librewolf to inspect the current page and complete the requested browser task safely."
