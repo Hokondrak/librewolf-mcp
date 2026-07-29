@@ -171,6 +171,20 @@ if ($PSCmdlet.ShouldProcess($resolvedInstallRoot, 'Install per-user native host 
   New-Item -Path $registryPath -Force | Out-Null
   Set-Item -LiteralPath $registryPath -Value $manifestPath
 
+  # Marker under the user's home, outside %LOCALAPPDATA%: an MSIX-packaged MCP client has its
+  # AppData reads redirected into its package container, so a marker there is invisible to it.
+  # The server reads this to select companion mode without being told.
+  $markerDirectory = Join-Path $env:USERPROFILE '.librewolf-agent-bridge'
+  if (-not (Test-Path -LiteralPath $markerDirectory)) {
+    New-Item -ItemType Directory -Path $markerDirectory -Force | Out-Null
+  }
+  [System.IO.File]::WriteAllText(
+    (Join-Path $markerDirectory 'companion-host.json'),
+    (ConvertTo-Json @{ hostName = $hostName; installedAt = (Get-Date).ToString('o') }),
+    (New-Object System.Text.UTF8Encoding $false)
+  )
+
+
   if ($RegisterManagedExtensionPolicy) {
     $xpiUri = ([Uri]((Resolve-Path -LiteralPath $ManagedExtensionXpiPath).Path)).AbsoluteUri
     $policy = @{ installation_mode = 'force_installed'; install_url = $xpiUri } | ConvertTo-Json -Compress

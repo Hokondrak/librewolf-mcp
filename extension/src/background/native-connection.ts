@@ -139,7 +139,10 @@ export class NativeConnection {
   #scheduleReconnect(message: string): void {
     if (this.#stopped) return;
     this.#attempt += 1;
-    const maximum = Math.min(30_000, 250 * 2 ** Math.min(this.#attempt, 7));
+    // The host is a local process behind a named pipe, so a retry costs almost nothing. The
+    // window that matters is the one where the browser is already open and the MCP server has
+    // only just started: a backoff that grows to 30s leaves the user's first request failing.
+    const maximum = Math.min(5_000, 250 * 2 ** Math.min(this.#attempt, 5));
     const delay = Math.floor(maximum / 2 + Math.random() * (maximum / 2));
     this.#setSnapshot({
       state: 'disconnected',

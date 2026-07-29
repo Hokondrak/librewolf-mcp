@@ -165,7 +165,7 @@ export class SecureCompanionTransport implements CompanionTransport {
       }
       const hello = await this.receiveWithTimeout(
         accepted.pipe,
-        this.options.connectTimeoutMs ?? 15_000,
+        this.options.connectTimeoutMs ?? 45_000,
         'Timed out waiting for the companion extension hello.',
       );
       const extensionCapabilities = this.validateExtensionHello(
@@ -270,7 +270,7 @@ export class SecureCompanionTransport implements CompanionTransport {
   private async withConnectTimeout(
     connection: Promise<CompanionConnection>,
   ): Promise<CompanionConnection> {
-    const timeoutMs = this.options.connectTimeoutMs ?? 15_000;
+    const timeoutMs = this.options.connectTimeoutMs ?? 45_000;
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([

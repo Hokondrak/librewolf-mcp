@@ -177,6 +177,15 @@ const readRuntimeVersion = async (runtimePath: string): Promise<string> => {
 const companionHostInstalled = (
   environment: Readonly<Record<string, string | undefined>>,
 ): boolean => {
+  // The marker lives under the user's home, not %LOCALAPPDATA%, because an MSIX-packaged MCP
+  // client — Claude Desktop is one — has its AppData reads redirected into the package
+  // container. Checking there would report "not installed" no matter what the installer did.
+  const home = environment['USERPROFILE'];
+  if (home && isAbsolute(home)) {
+    if (existsSync(join(home, '.librewolf-agent-bridge', 'companion-host.json'))) {
+      return true;
+    }
+  }
   const localAppData = environment['LOCALAPPDATA'];
   if (!localAppData || !isAbsolute(localAppData)) {
     return false;
@@ -351,9 +360,16 @@ export const createSessionForCli = async (
     throw new NodeEngineCompatibilityError(compatibility);
   }
 
-  const companionSession = (): BrowserSession =>
-    dependencies.companionSessionFactory?.({}) ??
-    new CompanionBrowserSession({ transport: new SecureCompanionTransport() });
+  const companionSession = (): BrowserSession => {
+    const session =
+      dependencies.companionSessionFactory?.({}) ??
+      new CompanionBrowserSession({ transport: new SecureCompanionTransport() });
+    // Publish the discovery record as soon as the server starts rather than on first use. The
+    // extension only retries every 30-60 seconds, so a record that appears when the user makes
+    // their first request is always missed by it.
+    void session.status().catch(() => undefined);
+    return session;
+  };
 
   if (options.mode === 'companion') {
     return companionSession();

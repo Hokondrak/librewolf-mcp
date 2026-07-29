@@ -70,6 +70,7 @@ describe('MCP CLI configuration', () => {
     });
 
     const session = await createSessionForCli(options, {
+      env: { LOCALAPPDATA: 'C:\\Users\\Test\\AppData\\Local' },
       nodeVersion: '24.14.0',
       discover: async (manualPath) => ({
         executablePath: manualPath ?? 'missing',
@@ -104,6 +105,7 @@ describe('MCP CLI configuration', () => {
 
     await expect(
       createSessionForCli(options, {
+        env: { LOCALAPPDATA: 'C:\\Users\\Test\\AppData\\Local' },
         nodeVersion: '20.18.2',
         discover: async () => {
           discoveryCalled = true;
@@ -131,6 +133,7 @@ describe('MCP CLI configuration', () => {
 
     await expect(
       createSessionForCli(options, {
+        env: { LOCALAPPDATA: 'C:\\Users\\Test\\AppData\\Local' },
         runtimeVersion: async (path) => {
           checkedPath = path;
           return 'v24.14.0';
